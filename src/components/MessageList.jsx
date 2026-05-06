@@ -3,6 +3,11 @@ import Avatar from "./Avatar";
 import MessageContent from "./MessageContent";
 import MsgCopyButton from "./MsgCopyButton";
 
+function formatTime(ts) {
+  if (!ts) return "";
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function MessageList({ messages, error, bottomRef, setInput, inputRef }) {
   const isEmpty = messages.length === 0;
 
@@ -26,10 +31,10 @@ export default function MessageList({ messages, error, bottomRef, setInput, inpu
             </svg>
           </div>
           <div>
-            <div className="welcome-title" style={{ fontSize: 20, fontWeight: 700, color: "#f1f5f9", marginBottom: 8 }}>
+            <div className="welcome-title" style={{ fontSize: 20, fontWeight: 700, color: "var(--text-bright)", marginBottom: 8 }}>
               Start a Conversation
             </div>
-            <div className="welcome-desc" style={{ fontSize: 14, color: "#475569", maxWidth: 300, lineHeight: 1.7, margin: "0 auto" }}>
+            <div className="welcome-desc" style={{ fontSize: 14, color: "var(--text-dim)", maxWidth: 300, lineHeight: 1.7, margin: "0 auto" }}>
               Ask me anything — writing, coding, analysis, brainstorming and more.
             </div>
           </div>
@@ -54,7 +59,12 @@ export default function MessageList({ messages, error, bottomRef, setInput, inpu
             <div className={`message-bubble ${msg.role}`}>
               <MessageContent content={msg.content} role={msg.role} streaming={msg.streaming} />
             </div>
-            {!msg.streaming && msg.content && <MsgCopyButton text={msg.content} />}
+            {!msg.streaming && msg.content && (
+              <div className="msg-meta">
+                <MsgCopyButton text={msg.content} />
+                <span className="msg-timestamp">{formatTime(msg.timestamp)}</span>
+              </div>
+            )}
           </div>
         </div>
       ))}

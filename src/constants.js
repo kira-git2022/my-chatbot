@@ -9,6 +9,12 @@ export const MODELS = [
   { id: "gpt-4-turbo", label: "GPT-4 Turbo" },
 ];
 
+export const TOKEN_COSTS = {
+  "gpt-4o":       { input: 2.50,  output: 10.00 },
+  "gpt-4o-mini":  { input: 0.15,  output: 0.60  },
+  "gpt-4-turbo":  { input: 10.00, output: 30.00 },
+};
+
 export const SUGGESTIONS = [
   "Explain quantum computing",
   "Write a short story",

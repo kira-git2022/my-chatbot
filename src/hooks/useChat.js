@@ -17,6 +17,7 @@ export function useChat() {
   const [error, setError] = useState(null);
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT_DEFAULT);
   const [model, setModel] = useState("gpt-4o");
+  const [totalUsage, setTotalUsage] = useState({ prompt: 0, completion: 0 });
 
   const abortRef = useRef(null);
   const bottomRef = useRef(null);
@@ -37,7 +38,7 @@ export function useChat() {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg = { role: "user", content: text };
+    const userMsg = { role: "user", content: text, timestamp: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
@@ -59,6 +60,7 @@ export function useChat() {
           model,
           max_tokens: 1500,
           stream: true,
+          stream_options: { include_usage: true },
           messages: [
             { role: "system", content: systemPrompt },
             ...newMessages.map(m => ({ role: m.role, content: m.content })),
@@ -74,8 +76,9 @@ export function useChat() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantContent = "";
+      const replyTimestamp = Date.now();
 
-      setMessages(prev => [...prev, { role: "assistant", content: "", streaming: true }]);
+      setMessages(prev => [...prev, { role: "assistant", content: "", streaming: true, timestamp: replyTimestamp }]);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -87,14 +90,22 @@ export function useChat() {
           const data = line.slice(6).trim();
           if (data === "[DONE]") continue;
           try {
-            const delta = JSON.parse(data).choices?.[0]?.delta?.content || "";
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content || "";
             assistantContent += delta;
+            if (parsed.usage) {
+              setTotalUsage(prev => ({
+                prompt: prev.prompt + parsed.usage.prompt_tokens,
+                completion: prev.completion + parsed.usage.completion_tokens,
+              }));
+            }
             setMessages(prev => {
               const updated = [...prev];
               updated[updated.length - 1] = {
                 role: "assistant",
                 content: assistantContent,
                 streaming: true,
+                timestamp: replyTimestamp,
               };
               return updated;
             });
@@ -106,7 +117,11 @@ export function useChat() {
 
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: assistantContent,
+          timestamp: replyTimestamp,
+        };
         return updated;
       });
     } catch (e) {
@@ -115,7 +130,7 @@ export function useChat() {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last?.streaming) {
-            updated[updated.length - 1] = { role: last.role, content: last.content };
+            updated[updated.length - 1] = { role: last.role, content: last.content, timestamp: last.timestamp };
           }
           return updated;
         });
@@ -138,6 +153,7 @@ export function useChat() {
   const clearChat = () => {
     setMessages([]);
     setError(null);
+    setTotalUsage({ prompt: 0, completion: 0 });
     localStorage.removeItem(STORAGE_KEY);
   };
 
@@ -151,6 +167,7 @@ export function useChat() {
     setSystemPrompt,
     model,
     setModel,
+    totalUsage,
     sendMessage,
     stopGeneration,
     clearChat,

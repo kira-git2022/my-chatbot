@@ -24,7 +24,7 @@ export default function ChatInput({ inputRef, input, setInput, loading, onSend, 
           rows={1}
           style={{
             flex: 1, background: "transparent", border: "none",
-            color: "#e2e8f0", fontSize: 14.5, lineHeight: 1.6,
+            color: "var(--text)", fontSize: 14.5, lineHeight: 1.6,
             resize: "none", outline: "none", fontFamily: "inherit",
             maxHeight: 120, overflowY: "auto",
           }}
@@ -64,8 +64,8 @@ export default function ChatInput({ inputRef, input, setInput, loading, onSend, 
           </button>
         )}
       </div>
-      <div style={{ textAlign: "center", fontSize: 11, color: "#2d3748", marginTop: 8 }}>
-        Powered by OpenAI API
+      <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-footer)", marginTop: 8 }}>
+        Powered by OpenAI API · ⌘/ to focus · ⌘K new chat
       </div>
     </div>
   );

@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
+import { ThemeProvider, useTheme } from "./ThemeContext";
 import { useChat } from "./hooks/useChat";
 import Sidebar from "./components/Sidebar";
 import ChatHeader from "./components/ChatHeader";
 import ChatInput from "./components/ChatInput";
 import MessageList from "./components/MessageList";
 
-export default function App() {
+function AppContent() {
+  const { theme } = useTheme();
   const {
     messages, input, setInput, loading, error,
     systemPrompt, setSystemPrompt, model, setModel,
-    sendMessage, stopGeneration, clearChat,
+    totalUsage, sendMessage, stopGeneration, clearChat,
     bottomRef, inputRef,
   } = useChat();
 
@@ -20,15 +22,32 @@ export default function App() {
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
 
+  useEffect(() => {
+    const onKey = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        clearChat();
+        inputRef.current?.focus();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [clearChat, inputRef]);
+
   const sidebarProps = {
     systemPrompt, setSystemPrompt,
     onClear: clearChat,
     messageCount: messages.length,
     model, setModel,
+    totalUsage,
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container${theme === "light" ? " theme-light" : ""}`}>
 
       {/* Desktop sidebar */}
       <div className="sidebar">
@@ -67,5 +86,13 @@ export default function App() {
       </div>
 
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

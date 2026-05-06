@@ -1,13 +1,23 @@
 import { useState } from "react";
-import { MODELS } from "../constants";
+import { MODELS, TOKEN_COSTS } from "../constants";
 
 const LABEL = {
-  fontSize: 11, fontWeight: 600, color: "#475569",
+  fontSize: 11, fontWeight: 600, color: "var(--text-dim)",
   letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8,
 };
 
-export default function Sidebar({ systemPrompt, setSystemPrompt, onClear, messageCount, model, setModel, onClose }) {
+function formatCost(cost) {
+  if (cost < 0.001) return "< $0.001";
+  return `$${cost.toFixed(4)}`;
+}
+
+export default function Sidebar({ systemPrompt, setSystemPrompt, onClear, messageCount, model, setModel, totalUsage, onClose }) {
   const [draft, setDraft] = useState(systemPrompt);
+
+  const costs = TOKEN_COSTS[model] ?? TOKEN_COSTS["gpt-4o"];
+  const estimatedCost = totalUsage.prompt * costs.input / 1_000_000
+                      + totalUsage.completion * costs.output / 1_000_000;
+  const totalTokens = totalUsage.prompt + totalUsage.completion;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, height: "100%" }}>
@@ -25,8 +35,8 @@ export default function Sidebar({ systemPrompt, setSystemPrompt, onClear, messag
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}>AI Chatbot</div>
-            <div style={{ fontSize: 11, color: "#64748b" }}>Powered by OpenAI</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-bright)" }}>AI Chatbot</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Powered by OpenAI</div>
           </div>
         </div>
 
@@ -34,8 +44,8 @@ export default function Sidebar({ systemPrompt, setSystemPrompt, onClear, messag
           onClick={() => { onClear(); onClose?.(); }}
           style={{
             width: "100%", padding: "9px 14px", background: "transparent",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
-            color: "#94a3b8", fontSize: 13, cursor: "pointer",
+            border: "1px solid var(--border-input)", borderRadius: 10,
+            color: "var(--text-faint)", fontSize: 13, cursor: "pointer",
             display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit",
           }}
         >
@@ -44,11 +54,12 @@ export default function Sidebar({ systemPrompt, setSystemPrompt, onClear, messag
             <path d="M3 3v5h5"/>
           </svg>
           New Conversation
+          <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text-dim)", opacity: 0.7 }}>⌘K</span>
         </button>
       </div>
 
       {/* Model selector */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 20 }}>
+      <div style={{ borderTop: "1px solid var(--border)", paddingTop: 20 }}>
         <div style={LABEL}>Model</div>
         <select
           className="model-select"
@@ -70,27 +81,48 @@ export default function Sidebar({ systemPrompt, setSystemPrompt, onClear, messag
           onBlur={() => setSystemPrompt(draft)}
           rows={5}
           style={{
-            width: "100%", background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10,
-            color: "#cbd5e1", fontSize: 13, lineHeight: 1.6,
+            width: "100%", background: "var(--bg-input)",
+            border: "1px solid var(--border)", borderRadius: 10,
+            color: "var(--text)", fontSize: 13, lineHeight: 1.6,
             padding: "10px 12px", resize: "vertical", fontFamily: "inherit", outline: "none",
           }}
           placeholder="Define the AI's personality..."
         />
-        <div style={{ fontSize: 11, color: "#475569", marginTop: 6 }}>
+        <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 6 }}>
           Changes apply to new conversations
         </div>
       </div>
 
       {/* Stats */}
-      <div style={{ marginTop: "auto" }}>
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{
-          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+          background: "var(--bg-stats)", border: "1px solid var(--border-stats)",
           borderRadius: 10, padding: "12px 14px",
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10,
         }}>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>Messages this session</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#e2e8f0" }}>{messageCount}</div>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>Messages</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>{messageCount}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 2 }}>Tokens</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text)" }}>
+              {totalTokens > 0 ? totalTokens.toLocaleString() : "—"}
+            </div>
+          </div>
         </div>
+        {totalTokens > 0 && (
+          <div style={{
+            background: "var(--bg-stats)", border: "1px solid var(--border-stats)",
+            borderRadius: 10, padding: "10px 14px",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Est. cost</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+              {formatCost(estimatedCost)}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
