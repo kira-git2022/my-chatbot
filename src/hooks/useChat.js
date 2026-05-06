@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { STORAGE_KEY, SYSTEM_PROMPT_DEFAULT } from "../constants";
+import { STORAGE_KEY, TITLE_KEY, SYSTEM_PROMPT_DEFAULT } from "../constants";
 
 export function useChat() {
   const [messages, setMessages] = useState(() => {
@@ -12,16 +12,17 @@ export function useChat() {
       return [];
     }
   });
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [input, setInput]             = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
   const [systemPrompt, setSystemPrompt] = useState(SYSTEM_PROMPT_DEFAULT);
-  const [model, setModel] = useState("gpt-4o");
-  const [totalUsage, setTotalUsage] = useState({ prompt: 0, completion: 0 });
+  const [model, setModel]             = useState("gpt-4o");
+  const [totalUsage, setTotalUsage]   = useState({ prompt: 0, completion: 0 });
+  const [title, setTitle]             = useState(() => localStorage.getItem(TITLE_KEY) || "");
 
-  const abortRef = useRef(null);
+  const abortRef  = useRef(null);
   const bottomRef = useRef(null);
-  const inputRef = useRef(null);
+  const inputRef  = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,12 +35,40 @@ export function useChat() {
     }
   }, [messages]);
 
+  const generateTitle = async (firstUserMessage) => {
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          max_tokens: 12,
+          messages: [{
+            role: "user",
+            content: `Write a 3-5 word title for a conversation that starts with: "${firstUserMessage.slice(0, 300)}". Reply with just the title, no quotes or punctuation.`,
+          }],
+        }),
+      });
+      const data = await res.json();
+      const t = data.choices?.[0]?.message?.content?.trim();
+      if (t) {
+        setTitle(t);
+        localStorage.setItem(TITLE_KEY, t);
+      }
+    } catch (e) { void e; }
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg = { role: "user", content: text, timestamp: Date.now() };
-    const newMessages = [...messages, userMsg];
+    const isFirstMessage = messages.length === 0;
+    const userMsg        = { role: "user", content: text, timestamp: Date.now() };
+    const newMessages    = [...messages, userMsg];
+
     setMessages(newMessages);
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
@@ -73,8 +102,8 @@ export function useChat() {
         throw new Error(err.error?.message || "API error");
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      const reader         = response.body.getReader();
+      const decoder        = new TextDecoder();
       let assistantContent = "";
       const replyTimestamp = Date.now();
 
@@ -91,47 +120,40 @@ export function useChat() {
           if (data === "[DONE]") continue;
           try {
             const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content || "";
+            const delta  = parsed.choices?.[0]?.delta?.content || "";
             assistantContent += delta;
             if (parsed.usage) {
               setTotalUsage(prev => ({
-                prompt: prev.prompt + parsed.usage.prompt_tokens,
+                prompt:     prev.prompt     + parsed.usage.prompt_tokens,
                 completion: prev.completion + parsed.usage.completion_tokens,
               }));
             }
             setMessages(prev => {
               const updated = [...prev];
               updated[updated.length - 1] = {
-                role: "assistant",
-                content: assistantContent,
-                streaming: true,
-                timestamp: replyTimestamp,
+                role: "assistant", content: assistantContent,
+                streaming: true, timestamp: replyTimestamp,
               };
               return updated;
             });
-          } catch (e) {
-            void e;
-          }
+          } catch (e) { void e; }
         }
       }
 
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: "assistant",
-          content: assistantContent,
-          timestamp: replyTimestamp,
-        };
+        updated[updated.length - 1] = { role: "assistant", content: assistantContent, timestamp: replyTimestamp };
         return updated;
       });
+
+      if (isFirstMessage && !title) generateTitle(text);
+
     } catch (e) {
       if (e.name === "AbortError") {
         setMessages(prev => {
           const updated = [...prev];
           const last = updated[updated.length - 1];
-          if (last?.streaming) {
-            updated[updated.length - 1] = { role: last.role, content: last.content, timestamp: last.timestamp };
-          }
+          if (last?.streaming) updated[updated.length - 1] = { role: last.role, content: last.content, timestamp: last.timestamp };
           return updated;
         });
       } else {
@@ -153,25 +175,17 @@ export function useChat() {
   const clearChat = () => {
     setMessages([]);
     setError(null);
+    setTitle("");
     setTotalUsage({ prompt: 0, completion: 0 });
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TITLE_KEY);
   };
 
   return {
-    messages,
-    input,
-    setInput,
-    loading,
-    error,
-    systemPrompt,
-    setSystemPrompt,
-    model,
-    setModel,
-    totalUsage,
-    sendMessage,
-    stopGeneration,
-    clearChat,
-    bottomRef,
-    inputRef,
+    messages, input, setInput, loading, error,
+    systemPrompt, setSystemPrompt, model, setModel,
+    totalUsage, title, setTitle,
+    sendMessage, stopGeneration, clearChat,
+    bottomRef, inputRef,
   };
 }

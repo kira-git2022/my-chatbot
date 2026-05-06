@@ -2,6 +2,7 @@ export const SYSTEM_PROMPT_DEFAULT =
   "You are a helpful, intelligent, and friendly AI assistant. Answer clearly and concisely.";
 
 export const STORAGE_KEY = "chatbot_v1_messages";
+export const TITLE_KEY   = "chatbot_v1_title";
 
 export const MODELS = [
   { id: "gpt-4o", label: "GPT-4o" },
