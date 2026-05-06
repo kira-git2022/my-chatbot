@@ -1,9 +1,13 @@
+import { useVoice } from "../hooks/useVoice";
+
 export default function ChatInput({ inputRef, input, setInput, loading, onSend, onStop }) {
+  const { listening, toggle: toggleVoice, supported: voiceSupported } = useVoice({
+    onResult: transcript =>
+      setInput(prev => (prev ? prev + " " + transcript : transcript)),
+  });
+
   const handleKey = e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      onSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
   };
 
   const autoResize = e => {
@@ -30,6 +34,29 @@ export default function ChatInput({ inputRef, input, setInput, loading, onSend, 
           }}
         />
 
+        {/* Mic button */}
+        {voiceSupported && (
+          <button
+            onClick={toggleVoice}
+            title={listening ? "Stop recording" : "Voice input"}
+            className={`mic-btn${listening ? " active" : ""}`}
+          >
+            {listening ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8"  y1="23" x2="16" y2="23"/>
+              </svg>
+            )}
+          </button>
+        )}
+
+        {/* Send / Stop */}
         {loading ? (
           <button
             onClick={onStop}
@@ -65,7 +92,7 @@ export default function ChatInput({ inputRef, input, setInput, loading, onSend, 
         )}
       </div>
       <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-footer)", marginTop: 8 }}>
-        Powered by OpenAI API · ⌘/ to focus · ⌘K new chat
+        Powered by OpenAI API · ⌘/ focus · ⌘K new chat · ⌘F search
       </div>
     </div>
   );

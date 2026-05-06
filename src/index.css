@@ -401,6 +401,62 @@ textarea, button, select { -webkit-tap-highlight-color: transparent; }
   border-color: var(--suggestion-hover-border);
 }
 
+/* ── Search bar ── */
+.search-bar {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  animation: fadeIn 0.15s ease;
+}
+.search-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  font-family: inherit;
+}
+.search-input:focus { border-color: var(--focus-ring); }
+
+/* Search match highlight */
+.message-bubble.search-match  { outline: 2px solid rgba(250,204,21,0.4); outline-offset: 1px; }
+.message-bubble.search-current { outline: 2px solid rgba(250,204,21,0.9); outline-offset: 1px; }
+mark {
+  background: rgba(250,204,21,0.45);
+  border-radius: 2px;
+  color: inherit;
+  padding: 0 1px;
+}
+.theme-light mark { background: rgba(234,179,8,0.35); }
+
+/* ── Mic button ── */
+.mic-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px; border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.mic-btn:hover { color: var(--text); background: var(--bg-input); }
+.mic-btn.active {
+  color: #ef4444;
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
 /* ── Mobile menu button ── */
 .menu-btn { display: none; }
 

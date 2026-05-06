@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { SUGGESTIONS } from "../constants";
 import Avatar from "./Avatar";
 import MessageContent from "./MessageContent";
@@ -8,8 +9,18 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function MessageList({ messages, error, bottomRef, setInput, inputRef }) {
+export default function MessageList({
+  messages, error, bottomRef, setInput, inputRef,
+  searchQuery, matchingIndices, currentMatchMsgIdx,
+}) {
   const isEmpty = messages.length === 0;
+
+  useEffect(() => {
+    if (currentMatchMsgIdx < 0) return;
+    document
+      .querySelector(`[data-msg-index="${currentMatchMsgIdx}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [currentMatchMsgIdx]);
 
   return (
     <div className="chat-messages">
@@ -52,22 +63,31 @@ export default function MessageList({ messages, error, bottomRef, setInput, inpu
         </div>
       )}
 
-      {messages.map((msg, i) => (
-        <div key={i} className={`message-row ${msg.role}`}>
-          <Avatar role={msg.role} />
-          <div className="message-col">
-            <div className={`message-bubble ${msg.role}`}>
-              <MessageContent content={msg.content} role={msg.role} streaming={msg.streaming} />
-            </div>
-            {!msg.streaming && msg.content && (
-              <div className="msg-meta">
-                <MsgCopyButton text={msg.content} />
-                <span className="msg-timestamp">{formatTime(msg.timestamp)}</span>
+      {messages.map((msg, i) => {
+        const isMatch   = searchQuery && matchingIndices.includes(i);
+        const isCurrent = i === currentMatchMsgIdx;
+        return (
+          <div key={i} data-msg-index={i} className={`message-row ${msg.role}`}>
+            <Avatar role={msg.role} />
+            <div className="message-col">
+              <div className={`message-bubble ${msg.role}${isMatch ? " search-match" : ""}${isCurrent ? " search-current" : ""}`}>
+                <MessageContent
+                  content={msg.content}
+                  role={msg.role}
+                  streaming={msg.streaming}
+                  searchQuery={msg.role === "user" ? searchQuery : ""}
+                />
               </div>
-            )}
+              {!msg.streaming && msg.content && (
+                <div className="msg-meta">
+                  <MsgCopyButton text={msg.content} />
+                  <span className="msg-timestamp">{formatTime(msg.timestamp)}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {error && (
         <div style={{
@@ -77,7 +97,7 @@ export default function MessageList({ messages, error, bottomRef, setInput, inpu
         }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
             <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="8"  x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
           <span><strong>Error:</strong> {error}</span>
